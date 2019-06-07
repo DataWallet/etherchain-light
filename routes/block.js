@@ -5,11 +5,11 @@ var async = require('async');
 var Web3 = require('web3');
 
 router.get('/:block', function(req, res, next) {
-  
-  var config = req.app.get('config');  
+
+  var config = req.app.get('config');
   var web3 = new Web3();
   web3.setProvider(config.provider);
-  
+
   async.waterfall([
     function(callback) {
       web3.eth.getBlock(req.params.block, true, function(err, result) {
@@ -27,7 +27,7 @@ router.get('/:block', function(req, res, next) {
     if (err) {
       return next(err);
     }
-    
+
     block.transactions.forEach(function(tx) {
       tx.traces = [];
       tx.failed = false;
@@ -44,17 +44,17 @@ router.get('/:block', function(req, res, next) {
       }
       // console.log(tx);
     });
-    res.render('block', { block: block });
+    res.render('block', { block: block, netstatsUrl: config.netstatsUrl });
   });
-  
+
 });
 
 router.get('/uncle/:hash/:number', function(req, res, next) {
-  
-  var config = req.app.get('config');  
+
+  var config = req.app.get('config');
   var web3 = new Web3();
   web3.setProvider(config.provider);
-  
+
   async.waterfall([
     function(callback) {
       web3.eth.getUncle(req.params.hash, req.params.number, true, function(err, result) {
@@ -71,12 +71,12 @@ router.get('/uncle/:hash/:number', function(req, res, next) {
     if (err) {
       return next(err);
     }
-     
+
     console.log(uncle);
-    
-    res.render('uncle', { uncle: uncle, blockHash: req.params.hash });
+
+    res.render('uncle', { uncle: uncle, blockHash: req.params.hash, netstatsUrl: config.netstatsUrl });
   });
-  
+
 });
 
 module.exports = router;

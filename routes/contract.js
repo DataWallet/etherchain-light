@@ -9,39 +9,40 @@ var Web3 = require('web3');
 
 var versions = JSON.parse(fs.readFileSync('./utils/solc-bin/bin/list.json')).builds.reverse();
 
-router.get('/verify', function(req, res, next) {  
-  res.render('verifyContract', { versions: versions });
+router.get('/verify', function(req, res, next) {
+  var config = req.app.get('config');
+  res.render('verifyContract', { versions: versions, netstatsUrl: config.netstatsUrl });
 });
 
 router.post('/verify', function(req, res, next) {
 
-  var config = req.app.get('config');  
+  var config = req.app.get('config');
   var web3 = new Web3();
   web3.setProvider(config.provider);
-  
+
   var contractAddress = req.body.contractAddress.toLowerCase();
   var contractName = req.body.contractName;
   var contractSource = req.body.contractSource;
   var compilerVersion = req.body.compilerVersion;
   var optimize = req.body.useOptimizations ? true : false;
-  
+
   if (!contractAddress) {
-    res.render('verifyContract', { versions: versions, message: "No contract address provided." });
+    res.render('verifyContract', { versions: versions, message: "No contract address provided.", netstatsUrl: config.netstatsUrl });
     return;
   }
   if (!contractName) {
-    res.render('verifyContract', { versions: versions, message: "No contract name provided." });
+    res.render('verifyContract', { versions: versions, message: "No contract name provided.", netstatsUrl: config.netstatsUrl });
     return;
   }
   if (!contractSource) {
-    res.render('verifyContract', { versions: versions, message: "No contract source provided." });
+    res.render('verifyContract', { versions: versions, message: "No contract source provided.", netstatsUrl: config.netstatsUrl });
     return;
   }
   if (!compilerVersion) {
-    res.render('verifyContract', { versions: versions, message: "No compiler version provided." });
+    res.render('verifyContract', { versions: versions, message: "No compiler version provided.", netstatsUrl: config.netstatsUrl });
     return;
   }
-  
+
   async.waterfall([
     function(callback) {
       web3.trace.filter({ "fromBlock": "0x00", "toAddress": [ contractAddress ] }, function(err, traces) {
@@ -55,8 +56,8 @@ router.post('/verify', function(req, res, next) {
           creationBytecode = trace.action.init;
         }
       });
-      
-      
+
+
       console.log("Processed traces");
       if (!creationBytecode) {
         callback("Contract creation transaction not found");
@@ -64,29 +65,29 @@ router.post('/verify', function(req, res, next) {
         callback(null, creationBytecode);
       }
     }, function(creationBytecode, callback) {
-      
+
       var tmpName = tmp.tmpNameSync();
       var outputName = tmp.tmpNameSync();
       var solcCommand = "/usr/bin/nodejs ./utils/compile.js " + tmpName + " " + outputName;
-      
+
       var data = { source: contractSource, optimize: optimize, compilerVersion: compilerVersion };
       console.log(solcCommand);
-      
+
       fs.writeFileSync(tmpName, JSON.stringify(data) , 'utf-8');
-      
+
       exec(solcCommand, function(error, stdout, stderr) {
         if (stderr) {
           console.log("Error while compiling the contract", stderr);
           callback(stderr, null);
           return;
         }
-        
+
         if (error || !stdout) {
           console.log("Compiler is currently unavailable.", error);
           callback("Compiler is currently unavailable. Please try again later...", null);
           return;
         }
-        
+
         var data = {};
         try {
           data = JSON.parse(fs.readFileSync(outputName).toString());
@@ -95,7 +96,7 @@ router.post('/verify', function(req, res, next) {
           callback("An unexpected error occurred during compilation, please try again later...", null);
           return;
         }
-        
+
         var contractBytecode = "";
         var abi = "";
         for (var contract in data.contracts) {
@@ -104,11 +105,11 @@ router.post('/verify', function(req, res, next) {
             abi = data.contracts[contract].interface;
           }
         }
-        
+
         // Remove swarm hash
         var blockchainBytecodeClean = creationBytecode.replace(/a165627a7a72305820.{64}0029/gi, "");
         var contractBytecodeClean = contractBytecode.replace(/a165627a7a72305820.{64}0029/gi, "");
-        
+
         // Check if we have any constructor arguments
         var constructorArgs = "";
         if (blockchainBytecodeClean.indexOf(contractBytecodeClean) === 0) {
@@ -122,7 +123,7 @@ router.post('/verify', function(req, res, next) {
           callback(errorStr, null);
           return;
         }
-        
+
         callback(null, {abi: abi, source: contractSource, constructorArgs: constructorArgs, name: contractName });
       });
     }, function(contractData, callback) {
@@ -134,9 +135,9 @@ router.post('/verify', function(req, res, next) {
     }
   ], function(err) {
     if (err) {
-      res.render('verifyContract', { versions: versions, message: "Error during contract verification: " + err });
+      res.render('verifyContract', { versions: versions, message: "Error during contract verification: " + err, netstatsUrl: config.netstatsUrl });
     } else {
-      res.render('verifyContract', { versions: versions, message: "Contract verification successful." });
+      res.render('verifyContract', { versions: versions, message: "Contract verification successful.", netstatsUrl: config.netstatsUrl });
     }
   });
 });
