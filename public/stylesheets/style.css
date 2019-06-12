@@ -84,8 +84,19 @@ pre {
   background: #151515 !important;
 }
 
-.navbar-inverse .navbar-nav>li>a:hover, .navbar-inverse .navbar-nav>li>a:focus{
-  background-color: #202020;
+.navbar-inverse .navbar-nav>li>a:hover,
+.navbar-inverse .navbar-nav>li>a:focus,
+.dropdown.open>a{
+  background-color: #303030 !important;
+}
+
+.dropdown.open .dropdown-menu {
+  background: #151515 !important;
+}
+
+.dropdown.open .dropdown-menu >li>a:hover,
+.dropdown.open .dropdown-menu >li>a:focus {
+  background: #303030 !important;
 }
 
 #dw-container{
